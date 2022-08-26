@@ -2,7 +2,7 @@ import * as dgram from 'dgram'
 import { IClient } from 'types/client'
 const socket = dgram.createSocket('udp4')
 // const PORT = 5000
-// const hostame
+// const hostame = 'localhost'
 
 const clients: IClient[] = []
 
@@ -41,4 +41,9 @@ socket.on('message', (data: Buffer, rinfo: dgram.RemoteInfo) => {
       port: rinfo.port
     })
   }
+})
+
+socket.on('error', err => {
+  console.log(`Ocorreu um erro no servidor: ${err.stack}`)
+  socket.close()
 })

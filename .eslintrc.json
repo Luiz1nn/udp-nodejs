@@ -6,6 +6,8 @@
   "rules": {
     "@typescript-eslint/strict-boolean-expressions": "off",
     "prefer-promise-reject-errors": "off",
-    "@typescript-eslint/no-floating-promises": "off"
+    "@typescript-eslint/no-floating-promises": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/restrict-template-expressions": "off"
   }
 }

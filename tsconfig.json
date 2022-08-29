@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
+    "strict": true,
     "rootDir": "src",
     "baseUrl": "src",
+    "esModuleInterop": true,
+    "target": "es2015",
+    "moduleResolution": "node",
+    "skipLibCheck": true,                     
+    "forceConsistentCasingInFileNames": true
   }
 }

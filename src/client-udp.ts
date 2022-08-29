@@ -1,74 +1,162 @@
-import * as dgram from 'dgram'
-import * as Readline from 'readline'
-
-const SERVER_HOSTNAME = 'localhost'
-const SERVER_PORT = 5000
-const USER_HOSTNAME = 'localhost'
-
-const USER_PORT = 5000
-let userAddress: any = ''
+import dgram from 'dgram'
+import Readline from 'readline'
+import { IClient } from 'types/client'
 
 const socket = dgram.createSocket('udp4')
 
-console.log('---CHAT---')
-console.log('Pressione Crtl + C para finalizar...')
+class Client {
+  SERVER_HOST: string
+  SERVER_PORT: number
+  USER_HOST: string
+  USER_PORT: any
+  userAddress: IClient
+  user: any
+  readline: any
 
-const readline = Readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
+  constructor () {
+    this.SERVER_HOST = 'localhost'
+    this.SERVER_PORT = 4500
 
-socket.bind(USER_PORT, USER_HOSTNAME)
+    this.USER_HOST = 'localhost'
+    this.USER_PORT
 
-socket.on('listening', () => {
-  userAddress = socket.address()
-
-  const data = {
-    header: {
-      type: 'connecting'
+    this.userAddress = {
+      address: '',
+      port: 0
     }
+
+    this.user = ''
+
+    this.readline = Readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    })
+
+    this.connection()
+    this.sendingMessage()
+    this.disconnection()
+    this.exceptionHandler()
+
+    process.on('exit', () => this.exitHandler.bind(process.exit()))
   }
 
-  const message = Buffer.from(JSON.stringify(data))
-  socket.send(message, 0, message.length, SERVER_PORT, SERVER_HOSTNAME)
-})
+  /**
+   * Este método inicia um soquete com um host e uma porta especificada e observa quando um
+   * soquete como um usuário está se preparando para armazenar seu endereço.
+   * Além disso, o usuário é solicitado a fornecer um apelido para usar o chat.
+   */
+  private connection () {
+    socket.bind(this.USER_PORT, this.USER_HOST)
 
-socket.on('message', (data: Buffer, rinfo: dgram.RemoteInfo) => {
-  const messageObject = JSON.parse(data.toString())
+    socket.on('listening', () => {
+      this.userAddress = socket.address()
+    })
 
-  if (messageObject.header.type === 'sending') {
-    console.log(Buffer.from(messageObject.body.message).toString())
-  } else {
-    console.log('unknownsage')
+    this.readline.question('Por favor digite seu nome de usuario: ', (answer: any) => {
+      this.user = answer
+      const data = {
+        header: {
+          type: 'connecting'
+        }
+      }
+
+      const message = Buffer.from(JSON.stringify(data))
+      socket.send(
+        message,
+        0,
+        message.length,
+        this.SERVER_PORT,
+        this.SERVER_HOST
+      )
+    })
   }
-})
 
-socket.on('line', input => {
-  const { address, port } = userAddress
-  const data = {
-    header: {
-      type: 'sending'
-    },
-    body: {
-      message: Buffer.from(`${address}:${port} ---> ${input}`).toJSON()
+  /**
+   * Este método observa o processo de envio do usuário, em seguida, captura a gravação da
+   * mensagem e envia para todos os outros usuários
+   */
+  private sendingMessage () {
+    socket.on('message', (data: Buffer) => {
+      const messageObject = JSON.parse(data.toString())
+
+      if (messageObject.header.type === 'Sending') {
+        console.log(Buffer.from(messageObject.body.message).toString())
+      } else {
+        console.log('mensagem desconhecida')
+      }
+    })
+
+    this.readline.on('line', (input: any) => {
+      const { address, port } = this.userAddress
+      const data = {
+        header: {
+          type: 'Sending'
+        },
+        body: {
+          message: Buffer.from(
+            `${this.user}-${address}:${port} → ${input}`
+          ).toJSON()
+        }
+      }
+
+      const message = Buffer.from(JSON.stringify(data))
+      socket.send(
+        message,
+        0,
+        message.length,
+        this.SERVER_PORT,
+        this.SERVER_HOST
+      )
+
+      console.log(`você: ${input}`)
+    })
+  }
+
+  /**
+   * Este método observa quando um usuário se desconecta do bate-papo e mata o processo de soquete
+   */
+  private disconnection () {
+    socket.on('message', (data: Buffer) => {
+      const messageObject = JSON.parse(data.toString())
+
+      if (messageObject.header.type === 'close') {
+        console.log(Buffer.from(messageObject.body.message).toString())
+        process.exit()
+      }
+    })
+  }
+
+  /**
+   * Este método observa os erros dados do soquete
+   */
+  private exceptionHandler () {
+    socket.on('error', err => {
+      console.log(`server error: ${err.stack}`)
+    })
+  }
+
+  /**
+   * Este método é acionado quando o processo de soquete é interrompido.
+   * Isso para o processo de interface, dá uma mensagem de log com o usuário que foi desconectado
+   */
+  private exitHandler () {
+    this.readline.close()
+
+    const data = {
+      header: {
+        type: 'close'
+      },
+      body: {
+        message: Buffer.from(`${this.user} saiu do bate-papo`).toJSON()
+      }
     }
-  }
 
-  const message = Buffer.from(JSON.stringify(data))
-  socket.send(message, 0, message.length, SERVER_PORT, SERVER_HOSTNAME)
+    const message = Buffer.from(JSON.stringify(data))
+    socket.send(message, 0, message.length, this.SERVER_PORT, this.SERVER_HOST)
 
-  console.log(`Client: ${input}`)
-})
-
-socket.on('message', (data: Buffer, rinfo: dgram.RemoteInfo) => {
-  const messageObject = JSON.parse(data.toString())
-
-  if (messageObject.header.type === 'close') {
-    console.log(Buffer.from(messageObject.body.message).toString())
+    console.log('all clean!')
     process.exit()
   }
-})
+}
 
-socket.on('error', err => {
-  console.log(`Ocorreu algum erro no servidor: ${err.stack}`)
-})
+module.exports = new Client()

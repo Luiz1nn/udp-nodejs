@@ -9,7 +9,7 @@ export class Server {
   clients: IClient[]
 
   constructor () {
-    this.PORT = 4500
+    this.PORT = 5000
     this.HOST = 'localhost'
 
     this.clients = []

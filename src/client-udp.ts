@@ -15,7 +15,7 @@ class Client {
 
   constructor () {
     this.SERVER_HOST = 'localhost'
-    this.SERVER_PORT = 4500
+    this.SERVER_PORT = 5000
 
     this.USER_HOST = 'localhost'
     this.USER_PORT
